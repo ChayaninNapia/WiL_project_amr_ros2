@@ -4,6 +4,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <algorithm>
 
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp/clock.hpp"
@@ -54,7 +55,7 @@ namespace Roboteq
 {
     Roboteq::Roboteq() : Node("roboteq_ros2_driver")
     {
-        pub_odom_tf = this->declare_parameter("pub_odom_tf", false);
+        pub_odom_tf = this->declare_parameter("pub_odom_tf", true);
         odom_frame = this->declare_parameter("odom_frame", "odom");
         base_frame = this->declare_parameter("base_frame", "base_link");
         cmdvel_topic = this->declare_parameter("cmdvel_topic", "cmd_vel");
@@ -62,13 +63,13 @@ namespace Roboteq
         port = this->declare_parameter("port", "/dev/ttyACM0");
         baud = this->declare_parameter("baud", 115200);
         open_loop = this->declare_parameter("open_loop", false);
-        wheel_circumference = this->declare_parameter("wheel_circumference", 0.49);
-        track_width = this->declare_parameter("track_width", 0.54);
-        encoder_ppr = this->declare_parameter("encoder_ppr", 4096);
-        encoder_cpr = this->declare_parameter("encoder_cpr", 16384);
-        max_amps = this->declare_parameter("max_amps", 5.0);
-        max_rpm = this->declare_parameter("max_rpm", 100);
-        gear_ratio = this->declare_parameter("gear_ratio", 9.2);
+        wheel_circumference = this->declare_parameter("wheel_circumference", 0.6346);
+        track_width = this->declare_parameter("track_width", 0.815);
+        encoder_ppr = this->declare_parameter("encoder_ppr", 36864);
+        encoder_cpr = this->declare_parameter("encoder_cpr", 147456);
+        max_amps = this->declare_parameter("max_amps", 9.5);
+        max_rpm = this->declare_parameter("max_rpm", 300);
+        gear_ratio = this->declare_parameter("gear_ratio", 9.0);
 
         // total_encoder_pulses=0;
         starttime = 0;
@@ -172,6 +173,10 @@ namespace Roboteq
         // motor speed (rpm)
         int32_t right_rpm = right_speed * gear_ratio / wheel_circumference * 60.0;
         int32_t left_rpm = left_speed * gear_ratio / wheel_circumference * 60.0;
+
+        right_rpm = std::clamp(right_rpm, -static_cast<int32_t>(max_rpm), static_cast<int32_t>(max_rpm));
+        left_rpm  = std::clamp(left_rpm,  -static_cast<int32_t>(max_rpm), static_cast<int32_t>(max_rpm));
+
         right_cmd << "!S 1 " << right_rpm << "\r";
         left_cmd << "!S 2 " << left_rpm << "\r";
 
@@ -192,6 +197,9 @@ namespace Roboteq
         controller.write("!S 1 0\r");
         controller.write("!S 2 0\r");
         controller.flush();
+
+        // clear break
+        controller.write("!DS 03\r");
 
         //disable echo
         controller.write("^ECHOF 1\r");
