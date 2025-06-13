@@ -63,12 +63,13 @@ namespace Roboteq
         port = this->declare_parameter("port", "/dev/ttyACM0");
         baud = this->declare_parameter("baud", 115200);
         open_loop = this->declare_parameter("open_loop", false);
-        wheel_circumference = this->declare_parameter("wheel_circumference", 0.6346);
+        // wheel_circumference = this->declare_parameter("wheel_circumference", 0.6346);
+        wheel_circumference = this->declare_parameter("wheel_circumference", 0.428225);
         track_width = this->declare_parameter("track_width", 0.815);
         encoder_ppr = this->declare_parameter("encoder_ppr", 36864);
         encoder_cpr = this->declare_parameter("encoder_cpr", 147456);
         max_amps = this->declare_parameter("max_amps", 9.5);
-        max_rpm = this->declare_parameter("max_rpm", 300);
+        max_rpm = this->declare_parameter("max_rpm", 50);
         gear_ratio = this->declare_parameter("gear_ratio", 9.0);
 
         // total_encoder_pulses=0;
@@ -199,7 +200,7 @@ namespace Roboteq
         controller.flush();
 
         // clear break
-        controller.write("!DS 03\r");
+        controller.write("!DS 0\r");
 
         //disable echo
         controller.write("^ECHOF 1\r");
@@ -442,8 +443,10 @@ namespace Roboteq
 
         // odom_msg->header.seq++; //? not used in ros2 ?
         odom_msg.header.stamp = this->get_clock()->now();
-        odom_msg.pose.pose.position.x = odom_x * dt;
-        odom_msg.pose.pose.position.y = odom_y * dt;
+
+        // delete weird syntax *dt
+        odom_msg.pose.pose.position.x = odom_x;
+        odom_msg.pose.pose.position.y = odom_y;
         odom_msg.pose.pose.position.z = 0.0;
         odom_msg.pose.pose.orientation = quat;
         odom_msg.twist.twist.linear.x = linear;
