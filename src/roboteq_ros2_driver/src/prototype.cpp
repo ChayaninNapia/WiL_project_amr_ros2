@@ -57,20 +57,19 @@ namespace Roboteq
     {
         pub_odom_tf = this->declare_parameter("pub_odom_tf", true);
         odom_frame = this->declare_parameter("odom_frame", "odom");
-        base_frame = this->declare_parameter("base_frame", "base_link");
+        base_frame = this->declare_parameter("base_frame", "base_footprint");
         cmdvel_topic = this->declare_parameter("cmdvel_topic", "cmd_vel");
         odom_topic = this->declare_parameter("odom_topic", "odom");
         port = this->declare_parameter("port", "/dev/ttyACM0");
         baud = this->declare_parameter("baud", 115200);
         open_loop = this->declare_parameter("open_loop", false);
-        // wheel_circumference = this->declare_parameter("wheel_circumference", 0.6346);
-        wheel_circumference = this->declare_parameter("wheel_circumference", 0.428225);
+        wheel_circumference = this->declare_parameter("wheel_circumference", 0.565486);
         track_width = this->declare_parameter("track_width", 0.815);
-        encoder_ppr = this->declare_parameter("encoder_ppr", 36864);
-        encoder_cpr = this->declare_parameter("encoder_cpr", 147456);
+        encoder_ppr = this->declare_parameter("encoder_ppr", 50000);
+        encoder_cpr = this->declare_parameter("encoder_cpr", 200000);
         max_amps = this->declare_parameter("max_amps", 9.5);
         max_rpm = this->declare_parameter("max_rpm", 50);
-        gear_ratio = this->declare_parameter("gear_ratio", 9.0);
+        gear_ratio = this->declare_parameter("gear_ratio", 20.0);
 
         // total_encoder_pulses=0;
         starttime = 0;
@@ -330,7 +329,12 @@ namespace Roboteq
         //  // start encoder output (10 hz)
         //  controller.write("# C_?CR_# 100\r");
         // start encoder output (30 hz)
-        controller.write("# C_?F_# 33\r");
+        
+        // auto sending motor feedback
+        // controller.write("# C_?F_# 33\r");
+
+        //auto sending motor encoders feedback
+        controller.write("# C_?CR_# 33\r");
 
 #endif
         controller.flush();
@@ -359,7 +363,7 @@ namespace Roboteq
             {
                 odom_buf[odom_idx] = 0;
                 // CR= is encoder counts
-                if (odom_buf[0] == 'F' || (odom_buf[1] == 'R' && odom_buf[2] == '='))
+                if (odom_buf[0]=='C' && odom_buf[1]=='R' && odom_buf[2]=='=')
                 {
                     //  std::cout<<"ODOM BUFFER"<<odom_buf<<std::endl;
                     unsigned int delim;
@@ -373,7 +377,7 @@ namespace Roboteq
                         if (odom_buf[delim] == ':')
                         {
                             odom_buf[delim] = 0;
-                            odom_encoder_right = (int32_t)strtol(odom_buf + 2, NULL, 10);
+                            odom_encoder_right = (int32_t)strtol(odom_buf + 3, NULL, 10);
                             odom_encoder_left = (int32_t)strtol(odom_buf + delim + 1, NULL, 10);
 
                             odom_publish();
@@ -400,18 +404,41 @@ namespace Roboteq
         odom_last_time = nowtime;
         // total_encoder_pulses+=odom_encoder_right;
         // determine deltas of distance and angle
-        float linear = ((float)odom_encoder_right * wheel_circumference / (60 * gear_ratio) + (float)odom_encoder_left * wheel_circumference / (60 * gear_ratio)) / 2;
-        //  float angular = ((float)odom_encoder_right / (float)encoder_cpr * wheel_circumference - (float)odom_encoder_left / (float)encoder_cpr * wheel_circumference) / track_width * -1.0;
-        float angular = ((float)odom_encoder_right * wheel_circumference / (60 * gear_ratio) - (float)odom_encoder_left * wheel_circumference / (60 * gear_ratio)) / track_width;
+
+        // float linear = ((float)odom_encoder_right * wheel_circumference / (60 * gear_ratio) + (float)odom_encoder_left * wheel_circumference / (60 * gear_ratio)) / 2;
+        // float angular = ((float)odom_encoder_right * wheel_circumference / (60 * gear_ratio) - (float)odom_encoder_left * wheel_circumference / (60 * gear_ratio)) / track_width;
+
         // Update odometry
-        odom_x += linear * dt * cos(odom_yaw);         // m
-        odom_y += linear * dt * sin(odom_yaw);         // m
-        odom_yaw = NORMALIZE(odom_yaw + angular * dt); // rad
+        // odom_x += linear * dt * cos(odom_yaw);         // m
+        // odom_y += linear * dt * sin(odom_yaw);         // m
+        // odom_yaw = NORMALIZE(odom_yaw + angular * dt); // rad
 
         // // Calculate velocities
         // float vx = (odom_x - odom_last_x) / dt;
         // float vy = (odom_y - odom_last_y) / dt;
         // float vyaw = (odom_yaw - odom_last_yaw) / dt;
+
+        //----------------------------odometry from wheel-encoder-feedback-------------------------------------------------//
+
+        // (1) แปลง counts → ระยะทาง (meters)
+        float left_dist  = (float)odom_encoder_left  / (float)encoder_cpr * wheel_circumference;
+        float right_dist = (float)odom_encoder_right / (float)encoder_cpr * wheel_circumference;
+
+        // (2) คำนวณระยะ displacement และมุมหมุน
+        float linear  = (left_dist + right_dist) / 2.0f;        // [m]
+        float angular = (right_dist - left_dist) / track_width; // [rad]
+
+        // (3) อัปเดต pose (linear เป็นระยะทาง จึงไม่ต้องคูณ dt อีก)
+        odom_x   += linear * cos(odom_yaw);
+        odom_y   += linear * sin(odom_yaw);
+        odom_yaw  = NORMALIZE(odom_yaw + angular);
+
+        // (4) ความเร็วเชิงเส้นและเชิงมุม
+        float vx   = linear  / dt;
+        float vy   = 0.0f;
+        float vyaw = angular / dt;
+
+        //-----------------------------------------------------------------------------//
 
         odom_last_x = odom_x;
         odom_last_y = odom_y;
@@ -449,7 +476,7 @@ namespace Roboteq
         odom_msg.pose.pose.position.y = odom_y;
         odom_msg.pose.pose.position.z = 0.0;
         odom_msg.pose.pose.orientation = quat;
-        odom_msg.twist.twist.linear.x = linear;
+        odom_msg.twist.twist.linear.x = vx;
         
         //correct syntax for ros2
         // odom_msg.twist.twist..y = 0.0;
@@ -459,7 +486,7 @@ namespace Roboteq
 
         odom_msg.twist.twist.angular.x = 0.0;
         odom_msg.twist.twist.angular.y = 0.0;
-        odom_msg.twist.twist.angular.z = angular;
+        odom_msg.twist.twist.angular.z = vyaw;
         odom_pub->publish(odom_msg);
         // odom_pub.publish(odom_msg); ROS1
     }
