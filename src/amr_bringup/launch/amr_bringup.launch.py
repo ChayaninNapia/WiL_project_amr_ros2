@@ -10,6 +10,7 @@ def generate_launch_description():
     # หา path ของแพ็กเกจ bringup และ sick_safetyscanners2
     pkg_bringup = get_package_share_directory('amr_bringup')
     pkg_sick   = get_package_share_directory('sick_safetyscanners2')
+    pkg_merger  = get_package_share_directory('ira_laser_tools')
 
     # 1) ประกาศ IncludeLaunchDescription สำหรับสอง launch เดิม
     lidar_tf_action = IncludeLaunchDescription(
@@ -20,6 +21,12 @@ def generate_launch_description():
     front_back_action = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_sick, 'launch', 'front_back_scan.launch.py')
+        )
+    )
+    
+    merger_action = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(pkg_merger, 'launch', 'laserscan_multi_merger_launch.py')
         )
     )
 
@@ -47,6 +54,7 @@ def generate_launch_description():
     # 3) สร้าง LaunchDescription แล้ว add action ตามลำดับ
     ld = LaunchDescription()
     ld.add_action(lidar_tf_action)
+    ld.add_action(merger_action)
     ld.add_action(front_back_action)
     ld.add_action(rviz_action)
     ld.add_action(prototype_driver_node)  # เพิ่ม Node ของคุณเข้าไป
