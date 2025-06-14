@@ -42,16 +42,10 @@ def generate_launch_description():
     # parameters=[{'your_param': 'value'}],
     # ถ้าต้อง remap topic ก็ส่งแบบนี้
     # remappings=[('old_topic', 'new_topic')],
-    ) 
-    
-    chmod_action = ExecuteProcess(
-        cmd=['sudo', 'chmod', '666', '/dev/ttyACM0'],
-        output='screen',
     )  
 
     # 3) สร้าง LaunchDescription แล้ว add action ตามลำดับ
     ld = LaunchDescription()
-    ld.add_action(chmod_action)  # เพิ่ม action สำหรับเปลี่ยน permission
     ld.add_action(lidar_tf_action)
     ld.add_action(front_back_action)
     ld.add_action(rviz_action)
