@@ -29,3 +29,8 @@ sudo bash -c 'echo "KERNEL==\"ttyUSB*\",MODE=\"0666\"" >> /etc/udev/rules.d/66-t
 sudo adduser facobot dialout
 
 sudo usermod -a -G dialout facobot
+
+## realsense launch
+```
+ros2 launch realsense2_camera rs_launch.py enable_accel:=true enable_gyro:=true unite_imu_method:=1
+```
