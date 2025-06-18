@@ -22,6 +22,20 @@ def generate_launch_description():
             name='base_link_to_laser2_link',
             arguments=['-0.628', '0.401', '0.12', '2.3561944902', '0.0', '3.14159', 'base_link', 'back_scan'],
         ),
+        
+        Node(
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            name='base_link_to_camera_link',
+            arguments=['0.628', '0.0', '0.16', '1.57079633', '0.0', '1.57079633', 'base_link', 'camera_link'],
+        ),
+        
+        Node(
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            name='base_link_to_camera_link',
+            arguments=['0.0', '0.0', '0.0', '0.008149', '0.000881', '-0.215383', 'camera_imu_frame', 'camera_imu_tilt'],
+        ),
 
         
         # Uncomment if needed

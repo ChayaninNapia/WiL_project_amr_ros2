@@ -6,10 +6,19 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 # find dependencies
-find_package(ament_cmake REQUIRED)
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
+################ FIND DEPENDENCIES  #################
+find_package(ament_cmake REQUIRED)		# cpp (optional)
+find_package(rclcpp REQUIRED)			# cpp (optional)
+find_package(ament_cmake_python REQUIRED)   	# python (optional)
+find_package(rclpy REQUIRED)                	# python (optional)
+######################################################
+
+################ INSTALL LAUNCH, ETC #################
+install(DIRECTORY
+  # add directories here
+  launch
+  config
+  DESTINATION share/${PROJECT_NAME})
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

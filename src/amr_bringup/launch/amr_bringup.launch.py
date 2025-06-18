@@ -41,15 +41,27 @@ def generate_launch_description():
     )
     
     prototype_driver_node = Node(
-    package='roboteq_ros2_driver',      # ชื่อแพ็กเกจ ตาม CMakeLists.txt
-    executable='prototype_driver',      # ชื่อ executable ที่คุณสร้าง
-    name='prototype_driver',            # node name ในระบบ
-    output='screen',
-    # ถ้ามีพารามิเตอร์ให้ส่ง ก็ใส่แบบนี้
-    # parameters=[{'your_param': 'value'}],
-    # ถ้าต้อง remap topic ก็ส่งแบบนี้
-    # remappings=[('old_topic', 'new_topic')],
-    )  
+        package='roboteq_ros2_driver',      # ชื่อแพ็กเกจ ตาม CMakeLists.txt
+        executable='prototype_driver',      # ชื่อ executable ที่คุณสร้าง
+        name='prototype_driver',            # node name ในระบบ
+        output='screen',
+        )  
+    
+    joy_node = Node(
+        package='joy',                # แพ็กเกจ joy
+        executable='joy_node',        # ชื่อ executable
+        name='joy_node',              # (ตั้งชื่อ node ตามต้องการ)
+        output='screen',
+    )
+    
+    amr_joy_node = Node(
+        package='amr_bringup',        # แพ็กเกจที่มีสคริปต์ amr_joy.py
+        executable='amr_joy.py',      # ชื่อไฟล์สคริปต์ที่ install มา
+        name='amr_joy',               # ตั้งชื่อ node ใน ROS graph
+        output='screen',
+        emulate_tty=True,
+        
+    )
 
     # 3) สร้าง LaunchDescription แล้ว add action ตามลำดับ
     ld = LaunchDescription()
@@ -57,6 +69,8 @@ def generate_launch_description():
     ld.add_action(merger_action)
     ld.add_action(front_back_action)
     ld.add_action(rviz_action)
-    ld.add_action(prototype_driver_node)  # เพิ่ม Node ของคุณเข้าไป
+    ld.add_action(prototype_driver_node)  
+    # ld.add_action(joy_node)
+    ld.add_action(amr_joy_node)
 
     return ld

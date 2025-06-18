@@ -55,11 +55,11 @@ namespace Roboteq
 {
     Roboteq::Roboteq() : Node("roboteq_ros2_driver")
     {
-        pub_odom_tf = this->declare_parameter("pub_odom_tf", true);
+        pub_odom_tf = this->declare_parameter("pub_odom_tf", false);
         odom_frame = this->declare_parameter("odom_frame", "odom");
         base_frame = this->declare_parameter("base_frame", "base_footprint");
         cmdvel_topic = this->declare_parameter("cmdvel_topic", "cmd_vel");
-        odom_topic = this->declare_parameter("odom_topic", "odom");
+        odom_topic = this->declare_parameter("odom_topic", "/wheel_odom");
         port = this->declare_parameter("port", "/dev/ttyACM0");
         baud = this->declare_parameter("baud", 115200);
         open_loop = this->declare_parameter("open_loop", false);
@@ -68,7 +68,7 @@ namespace Roboteq
         encoder_ppr = this->declare_parameter("encoder_ppr", 50000);
         encoder_cpr = this->declare_parameter("encoder_cpr", 200000);
         max_amps = this->declare_parameter("max_amps", 9.5);
-        max_rpm = this->declare_parameter("max_rpm", 50);
+        max_rpm = this->declare_parameter("max_rpm", 300);
         gear_ratio = this->declare_parameter("gear_ratio", 20.0);
 
         // total_encoder_pulses=0;
