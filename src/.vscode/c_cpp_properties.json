@@ -1,0 +1,30 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/chayanin09/WiL_project_amr_ros2/install/serial/include/**",
+        "/home/chayanin09/WiL_project_amr_ros2/install/ira_laser_tools/include/**",
+        "/opt/ros/humble/include/**",
+        "/home/chayanin09/WiL_project_amr_ros2/src/amr_bringup/include/**",
+        "/home/chayanin09/WiL_project_amr_ros2/src/amr_ekf/include/**",
+        "/home/chayanin09/WiL_project_amr_ros2/src/amr_nav/include/**",
+        "/home/chayanin09/WiL_project_amr_ros2/src/amr_slam/include/**",
+        "/home/chayanin09/WiL_project_amr_ros2/src/ira_laser_tools/include/**",
+        "/home/chayanin09/WiL_project_amr_ros2/src/roboteq_ros2_driver/include/**",
+        "/home/chayanin09/WiL_project_amr_ros2/src/serial/include/**",
+        "/home/chayanin09/WiL_project_amr_ros2/src/sick_safetyscanners2/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}

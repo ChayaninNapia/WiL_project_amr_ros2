@@ -68,7 +68,7 @@ def generate_launch_description():
     ld.add_action(lidar_tf_action)
     ld.add_action(merger_action)
     ld.add_action(front_back_action)
-    ld.add_action(rviz_action)
+    # ld.add_action(rviz_action)
     ld.add_action(prototype_driver_node)  
     # ld.add_action(joy_node)
     ld.add_action(amr_joy_node)
