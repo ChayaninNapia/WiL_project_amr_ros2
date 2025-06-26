@@ -47,6 +47,9 @@ namespace Roboteq
     int32_t odom_encoder_left{};
     int32_t odom_encoder_right{};
 
+    int32_t odom_encoder_left_abs{0};
+    int32_t odom_encoder_right_abs{0};
+
     float odom_x{};
     float odom_y{};
     float odom_yaw{};

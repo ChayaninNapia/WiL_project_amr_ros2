@@ -10,7 +10,10 @@
         "/opt/ros/humble/include/**",
         "/home/chayanin09/WiL_project_amr_ros2/src/roboteq_ros2_driver/include/**",
         "/home/chayanin09/WiL_project_amr_ros2/src/serial/include/**",
-        "/usr/include/**"
+        "/usr/include/**",
+        "${workspaceFolder}/build/unit_test/rosidl_generator_cpp",
+        "${workspaceFolder}/src/**",
+        "${workspaceFolder}/build/amr_interfaces/rosidl_generator_cpp"
       ],
       "name": "ROS",
       "intelliSenseMode": "gcc-x64",

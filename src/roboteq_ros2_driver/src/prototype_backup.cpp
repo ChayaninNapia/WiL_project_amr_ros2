@@ -115,23 +115,6 @@ namespace Roboteq
         odom_baselink_transform_ =
             std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
-        geometry_msgs::msg::TransformStamped init_tf;
-        init_tf.header.frame_id    = odom_frame;
-        init_tf.child_frame_id     = base_frame;
-        init_tf.transform.translation.x = 0.0;
-        init_tf.transform.translation.y = 0.0;
-        init_tf.transform.translation.z = 0.0;
-        init_tf.transform.rotation.x = 0.0;
-        init_tf.transform.rotation.y = 0.0;
-        init_tf.transform.rotation.z = 0.0;
-        init_tf.transform.rotation.w = 1.0;
-
-        for (int i = 0; i < 3; ++i) {
-        init_tf.header.stamp = this->get_clock()->now();
-        odom_baselink_transform_->sendTransform(init_tf);
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
-        }
-
         // enable modifying params at run-time
         param_update_timer =
             this->create_wall_timer(1000ms, std::bind(&Roboteq::update_parameters, this));
@@ -139,7 +122,7 @@ namespace Roboteq
 
     void Roboteq::update_parameters()
     {
-        // RCLCPP_INFO(this->get_logger(), "Parameters updated ...");
+        RCLCPP_INFO(this->get_logger(), "Parameters updated ...");
         this->get_parameter("pub_odom_tf", pub_odom_tf);
         this->get_parameter("odom_frame", odom_frame);
         this->get_parameter("base_frame", base_frame);
@@ -217,11 +200,6 @@ namespace Roboteq
 
         // clear break
         controller.write("!DS 0\r");
-
-        // reset encoder counts
-        controller.write("!C 1 0\r");
-        controller.write("!C 2 0\r");
-        
 
         //disable echo
         controller.write("^ECHOF 1\r");
@@ -356,7 +334,7 @@ namespace Roboteq
         // controller.write("# C_?F_# 33\r");
 
         //auto sending motor encoders feedback
-        controller.write("# C_?CR_?C_# 33\r");
+        controller.write("# C_?CR_# 33\r");
 
 #endif
         controller.flush();
@@ -374,6 +352,8 @@ namespace Roboteq
             odom_last_time = nowtime;
         }
 
+        // read sensor data stream from motor controller
+        // maybe use while loop to improve cpu usage?
         if (controller.available())
         {
             char ch = 0;
@@ -381,27 +361,11 @@ namespace Roboteq
                 return;
             if (ch == '\r')
             {
-                odom_buf[odom_idx] = '\0';
-                if (odom_idx > 0) {
-
-                    // DEBUG
-                    // std::cout << "[Serial] " << odom_buf << std::endl;
-                }
-
-                // (A) อ่าน Absolute Encoder Count
-                if (odom_buf[0]=='C' && odom_buf[1]=='=' && odom_buf[2] != 'R')
+                odom_buf[odom_idx] = 0;
+                // CR= is encoder counts
+                if (odom_buf[0]=='C' && odom_buf[1]=='R' && odom_buf[2]=='=')
                 {
-                    // รูปแบบ "C=right:left"
-                    char *p = strchr(odom_buf + 2, ':');
-                    if (p) {
-                        *p = '\0';
-                        odom_encoder_right_abs = atoi(odom_buf + 2);
-                        odom_encoder_left_abs  = atoi(p + 1);
-                    }
-                }
-                // (B) อ่าน Relative Encoder Count แล้วคำนวณ odometry
-                else if (odom_buf[0]=='C' && odom_buf[1]=='R' && odom_buf[2]=='=')
-                {
+                    //  std::cout<<"ODOM BUFFER"<<odom_buf<<std::endl;
                     unsigned int delim;
                     for (delim = 3; delim < odom_idx; delim++)
                     {
@@ -412,9 +376,10 @@ namespace Roboteq
                         }
                         if (odom_buf[delim] == ':')
                         {
-                            odom_buf[delim] = '\0';
-                            odom_encoder_right = strtol(odom_buf + 3, NULL, 10);
-                            odom_encoder_left  = strtol(odom_buf + delim + 1, NULL, 10);
+                            odom_buf[delim] = 0;
+                            odom_encoder_right = (int32_t)strtol(odom_buf + 3, NULL, 10);
+                            odom_encoder_left = (int32_t)strtol(odom_buf + delim + 1, NULL, 10);
+
                             odom_publish();
                             break;
                         }
@@ -472,14 +437,7 @@ namespace Roboteq
         float vx   = linear  / dt;
         float vy   = 0.0f;
         float vyaw = angular / dt;
-        
-        // เก็บตำแหน่งเชิงมุมของล้อ
-        float left_theta_abs  = odom_encoder_left_abs  / float(encoder_cpr) * 2.0f * M_PI;
-        float right_theta_abs = odom_encoder_right_abs / float(encoder_cpr) * 2.0f * M_PI;
 
-        // RCLCPP_INFO(this->get_logger(),
-        //     "Wheel angles (rad)  Left: %.3f , Right: %.3f",
-        //     left_theta, right_theta);
         //-----------------------------------------------------------------------------//
 
         odom_last_x = odom_x;
@@ -507,59 +465,6 @@ namespace Roboteq
             tf_msg.transform.rotation = quat;
             odom_baselink_transform_->sendTransform(tf_msg);
         }
-
-            // คำนวณระยะห่างครึ่งหนึ่งระหว่างล้อ
-            float half_track = track_width / 2.0f;
-            // เก็บเวลาปัจจุบันให้ตรงกันทั้งสองล้อ
-            rclcpp::Time now = this->get_clock()->now();
-
-            // --- Left wheel frame ---
-            {
-            geometry_msgs::msg::TransformStamped left_tf;
-            left_tf.header.stamp    = now;
-            left_tf.header.frame_id = base_frame;
-            left_tf.child_frame_id  = "left_wheel_frame";
-            left_tf.transform.translation.x = 0.0;
-            left_tf.transform.translation.y =  half_track;
-            left_tf.transform.translation.z = 0.0;
-
-            // (1) quaternion offset หมุนรอบ X -90°:
-            tf2::Quaternion q_offset;
-            q_offset.setRPY(-M_PI/2.0, 0.0, 0.0);
-
-            // (2) quaternion สำหรับ yaw = left_theta_abs:
-            tf2::Quaternion q_yaw;
-            q_yaw.setRPY(0.0, 0.0, left_theta_abs);
-
-            // (3) คูณ offset ก่อน แล้วค่อย yaw:
-            tf2::Quaternion ql = q_offset * q_yaw;
-
-            left_tf.transform.rotation = tf2::toMsg(ql);
-            odom_baselink_transform_->sendTransform(left_tf);
-            }
-
-            // --- Right wheel frame ---
-            {
-            geometry_msgs::msg::TransformStamped right_tf;
-            right_tf.header.stamp    = now;
-            right_tf.header.frame_id = base_frame;
-            right_tf.child_frame_id  = "right_wheel_frame";
-            right_tf.transform.translation.x = 0.0;
-            right_tf.transform.translation.y = -half_track;
-            right_tf.transform.translation.z = 0.0;
-
-            tf2::Quaternion q_offset;
-            q_offset.setRPY(-M_PI/2.0, 0.0, 0.0);
-
-            tf2::Quaternion q_yaw;
-            q_yaw.setRPY(0.0, 0.0, right_theta_abs);
-
-            tf2::Quaternion qr = q_offset * q_yaw;
-            right_tf.transform.rotation = tf2::toMsg(qr);
-            odom_baselink_transform_->sendTransform(right_tf);
-            }
-
-        
 
         // update odom msg
 

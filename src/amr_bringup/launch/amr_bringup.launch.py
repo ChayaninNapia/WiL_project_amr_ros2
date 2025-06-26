@@ -1,16 +1,19 @@
 import os
 
 from launch import LaunchDescription
-from launch.actions import ExecuteProcess, IncludeLaunchDescription
+from launch.actions import ExecuteProcess, IncludeLaunchDescription, RegisterEventHandler
 from launch_ros.actions import Node                                # ← เพิ่มตรงนี้
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from ament_index_python.packages import get_package_share_directory
+from launch.event_handlers import OnProcessStart
+
 
 def generate_launch_description():
     # หา path ของแพ็กเกจ bringup และ sick_safetyscanners2
     pkg_bringup = get_package_share_directory('amr_bringup')
     pkg_sick   = get_package_share_directory('sick_safetyscanners2')
     pkg_merger  = get_package_share_directory('ira_laser_tools')
+    pkg_ekf = get_package_share_directory('amr_ekf')
 
     # 1) ประกาศ IncludeLaunchDescription สำหรับสอง launch เดิม
     lidar_tf_action = IncludeLaunchDescription(
@@ -27,6 +30,12 @@ def generate_launch_description():
     merger_action = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_merger, 'launch', 'laserscan_multi_merger_launch.py')
+        )
+    )
+    
+    ekf_action = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(pkg_ekf, 'launch', 'ekf.launch.py')
         )
     )
 
@@ -66,11 +75,16 @@ def generate_launch_description():
     # 3) สร้าง LaunchDescription แล้ว add action ตามลำดับ
     ld = LaunchDescription()
     ld.add_action(lidar_tf_action)
-    ld.add_action(merger_action)
     ld.add_action(front_back_action)
-    # ld.add_action(rviz_action)
-    ld.add_action(prototype_driver_node)  
-    # ld.add_action(joy_node)
+    ld.add_action(merger_action)
+    ld.add_action(prototype_driver_node)
+    ld.add_action(ekf_action)
+    
+    
+    ## Uncomment if on manual control
+    
+    ld.add_action(rviz_action) 
+    ld.add_action(joy_node)
     ld.add_action(amr_joy_node)
 
     return ld

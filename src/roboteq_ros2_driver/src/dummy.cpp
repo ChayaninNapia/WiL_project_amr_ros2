@@ -115,23 +115,6 @@ namespace Roboteq
         odom_baselink_transform_ =
             std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
-        geometry_msgs::msg::TransformStamped init_tf;
-        init_tf.header.frame_id    = odom_frame;
-        init_tf.child_frame_id     = base_frame;
-        init_tf.transform.translation.x = 0.0;
-        init_tf.transform.translation.y = 0.0;
-        init_tf.transform.translation.z = 0.0;
-        init_tf.transform.rotation.x = 0.0;
-        init_tf.transform.rotation.y = 0.0;
-        init_tf.transform.rotation.z = 0.0;
-        init_tf.transform.rotation.w = 1.0;
-
-        for (int i = 0; i < 3; ++i) {
-        init_tf.header.stamp = this->get_clock()->now();
-        odom_baselink_transform_->sendTransform(init_tf);
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
-        }
-
         // enable modifying params at run-time
         param_update_timer =
             this->create_wall_timer(1000ms, std::bind(&Roboteq::update_parameters, this));
@@ -356,7 +339,7 @@ namespace Roboteq
         // controller.write("# C_?F_# 33\r");
 
         //auto sending motor encoders feedback
-        controller.write("# C_?CR_?C_# 33\r");
+        controller.write("# C_?CR_# 33\r");
 
 #endif
         controller.flush();
@@ -506,7 +489,6 @@ namespace Roboteq
             tf_msg.transform.translation.z = 0.0;
             tf_msg.transform.rotation = quat;
             odom_baselink_transform_->sendTransform(tf_msg);
-        }
 
             // คำนวณระยะห่างครึ่งหนึ่งระหว่างล้อ
             float half_track = track_width / 2.0f;
@@ -559,7 +541,7 @@ namespace Roboteq
             odom_baselink_transform_->sendTransform(right_tf);
             }
 
-        
+        }
 
         // update odom msg
 
